@@ -19,15 +19,11 @@ import { FilterModal } from '../components/FilterModal';
 import { UserSwitcherModal } from '../components/UserSwitcherModal';
 import { Users, Sparkles, Building2, SearchX } from 'lucide-react-native';
 
-interface HomeScreenProps {
-  onSelectRoom: (room: Room) => void;
-  onNavigateBookings: () => void;
-}
+import { useNavigation } from '@react-navigation/native';
+import { MainTabNavigationProp } from '../navigation/types';
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({
-  onSelectRoom,
-  onNavigateBookings,
-}) => {
+export const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<MainTabNavigationProp<'Explore'>>();
   const currentUser = useBookingStore(state => state.currentUser);
   const users = useBookingStore(state => state.users);
   const switchUser = useBookingStore(state => state.switchUser);
@@ -70,11 +66,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <RoomCard
           room={item}
           currentStatus={currentStatus}
-          onPress={onSelectRoom}
+          onPress={(room) => navigation.navigate('RoomDetail', { room })}
         />
       );
     },
-    [getRoomCurrentStatus, onSelectRoom]
+    [getRoomCurrentStatus, navigation]
   );
 
   // Optimized keyExtractor
@@ -146,7 +142,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {userActiveBookingsCount > 0 && (
           <TouchableOpacity
             style={styles.activeBookingsChip}
-            onPress={onNavigateBookings}
+            onPress={() => navigation.navigate('MyBookings')}
             activeOpacity={0.8}
           >
             <Sparkles size={12} color={Colors.primaryDark} />

@@ -1,189 +1,129 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Search, CalendarDays, User as UserIcon, Sparkles } from 'lucide-react-native';
+import React, { useEffect } from 'react';
+import { Platform, View, Text, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Search, CalendarDays, User as UserIcon } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
-import { Room } from '../types';
-import { useBookingStore } from '../store/useBookingStore';
+
 import { HomeScreen } from '../screens/HomeScreen';
 import { RoomDetailScreen } from '../screens/RoomDetailScreen';
 import { MyBookingsScreen } from '../screens/MyBookingsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { AuthScreen } from '../screens/AuthScreen';
+
+import { useBookingStore } from '../store/useBookingStore';
 import { NotificationService } from '../services/notificationService';
+import { MainTabParamList, RootStackParamList } from './types';
 
-type Tab = 'EXPLORE' | 'MY_BOOKINGS' | 'PROFILE';
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
-export const MainNavigator: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<Tab>('EXPLORE');
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-
-  const currentUser = useBookingStore(state => state.currentUser);
-  const isAuthenticated = useBookingStore(state => state.isAuthenticated);
+const MainTabs = () => {
   const bookings = useBookingStore(state => state.bookings);
-  const initFirebaseSync = useBookingStore(state => state.initFirebaseSync);
-
-  // Request notification permissions and initialize Firebase Sync on app mount
-  useEffect(() => {
-    NotificationService.requestPermissions();
-    initFirebaseSync();
-  }, []);
-
-  const activeBookingsCount = bookings.filter(
+  const currentUser = useBookingStore(state => state.currentUser);
+  
+  const activeBookingsCount = currentUser ? bookings.filter(
     b => b.userId === currentUser.id && (b.status === 'CONFIRMED' || b.status === 'CHECKED_IN')
-  ).length;
-
-  const handleSelectRoom = (room: Room) => {
-    setSelectedRoom(room);
-  };
-
-  const handleBackToExplore = () => {
-    setSelectedRoom(null);
-  };
-
-  const handleBookingSuccessNavigate = () => {
-    setSelectedRoom(null);
-    setCurrentTab('MY_BOOKINGS');
-  };
-
-  // If not authenticated, display login & registration screen
-  if (!isAuthenticated) {
-    return <AuthScreen />;
-  }
-
-  const renderContent = () => {
-    if (selectedRoom) {
-      return (
-        <RoomDetailScreen
-          room={selectedRoom}
-          onBack={handleBackToExplore}
-          onBookingSuccessNavigate={handleBookingSuccessNavigate}
-        />
-      );
-    }
-
-    switch (currentTab) {
-      case 'EXPLORE':
-        return (
-          <HomeScreen
-            onSelectRoom={handleSelectRoom}
-            onNavigateBookings={() => setCurrentTab('MY_BOOKINGS')}
-          />
-        );
-      case 'MY_BOOKINGS':
-        return <MyBookingsScreen />;
-      case 'PROFILE':
-        return <ProfileScreen />;
-    }
-  };
+  ).length : 0;
 
   return (
-    <View style={styles.container}>
-      {/* Screen Content */}
-      <View style={styles.screenContainer}>{renderContent()}</View>
-
-      {/* Bottom Navigation Bar (Hidden when inside Room Detail to give full immersion) */}
-      {!selectedRoom && (
-        <View style={styles.bottomNav}>
-          {/* Tab 1: Explore */}
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => setCurrentTab('EXPLORE')}
-            activeOpacity={0.8}
-          >
-            <Search
-              size={20}
-              color={currentTab === 'EXPLORE' ? Colors.primary : Colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                currentTab === 'EXPLORE' && styles.navLabelActive,
-              ]}
-            >
-              Phòng học
-            </Text>
-          </TouchableOpacity>
-
-          {/* Tab 2: My Bookings */}
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => setCurrentTab('MY_BOOKINGS')}
-            activeOpacity={0.8}
-          >
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: Colors.cardBg,
+          borderTopWidth: 1,
+          borderTopColor: Colors.border,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 85 : 60,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Explore"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Phòng học',
+          tabBarIcon: ({ color, size }) => (
+            <Search size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MyBookings"
+        component={MyBookingsScreen}
+        options={{
+          tabBarLabel: 'Lịch của tôi',
+          tabBarIcon: ({ color, size }) => (
             <View style={styles.iconBadgeWrapper}>
-              <CalendarDays
-                size={20}
-                color={currentTab === 'MY_BOOKINGS' ? Colors.primary : Colors.textMuted}
-              />
+              <CalendarDays size={size} color={color} />
               {activeBookingsCount > 0 && (
                 <View style={styles.tabBadge}>
                   <Text style={styles.tabBadgeText}>{activeBookingsCount}</Text>
                 </View>
               )}
             </View>
-            <Text
-              style={[
-                styles.navLabel,
-                currentTab === 'MY_BOOKINGS' && styles.navLabelActive,
-              ]}
-            >
-              Lịch của tôi
-            </Text>
-          </TouchableOpacity>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Hồ sơ SV',
+          tabBarIcon: ({ color, size }) => (
+            <UserIcon size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
-          {/* Tab 3: Profile */}
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => setCurrentTab('PROFILE')}
-            activeOpacity={0.8}
-          >
-            <UserIcon
-              size={20}
-              color={currentTab === 'PROFILE' ? Colors.primary : Colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                currentTab === 'PROFILE' && styles.navLabelActive,
-              ]}
-            >
-              Hồ sơ SV
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+export const MainNavigator: React.FC = () => {
+  const isAuthenticated = useBookingStore(state => state.isAuthenticated);
+  const initFirebaseSync = useBookingStore(state => state.initFirebaseSync);
+
+  useEffect(() => {
+    NotificationService.requestPermissions();
+    initFirebaseSync();
+  }, []);
+
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen 
+          name="RoomDetail" 
+          component={RoomDetailScreen} 
+          options={{
+            presentation: 'card',
+            animation: 'slide_from_right'
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  screenContainer: {
-    flex: 1,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: Colors.cardBg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 2,
-  },
   iconBadgeWrapper: {
     position: 'relative',
   },
@@ -204,14 +144,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
-  },
-  navLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textMuted,
-  },
-  navLabelActive: {
-    color: Colors.primary,
-    fontWeight: '700',
   },
 });

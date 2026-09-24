@@ -35,11 +35,14 @@ import { BookingConfirmModal } from '../components/BookingConfirmModal';
 import { QRCodeModal } from '../components/QRCodeModal';
 import { TIME_SLOTS, getTodayString, formatVietnameseDate } from '../utils/dateUtils';
 import { AMENITIES_LIST } from '../data/mockRooms';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import { RootStackNavigationProp } from '../navigation/types';
 
-interface RoomDetailScreenProps {
-  room: Room;
-  onBack: () => void;
-  onBookingSuccessNavigate: () => void;
+interface RouteParams {
+  params: {
+    room: Room;
+  };
 }
 
 const renderAmenityIcon = (type: string, size = 16, color = Colors.primary) => {
@@ -68,11 +71,10 @@ const getAmenityLabel = (type: string): string => {
   return found ? found.label : type;
 };
 
-export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
-  room,
-  onBack,
-  onBookingSuccessNavigate,
-}) => {
+export const RoomDetailScreen: React.FC = () => {
+  const route = useRoute<RouteParams>();
+  const navigation = useNavigation<RootStackNavigationProp<'RoomDetail'>>();
+  const room = route.params.room;
   const currentUser = useBookingStore(state => state.currentUser);
   const isSlotOccupied = useBookingStore(state => state.isSlotOccupied);
   const getUserSlotBooking = useBookingStore(state => state.getUserSlotBooking);
@@ -130,7 +132,7 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
 
           {/* Top Bar Navigation */}
           <View style={styles.navBar}>
-            <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
               <ArrowLeft size={20} color="#FFFFFF" />
             </TouchableOpacity>
 
@@ -161,13 +163,13 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
         {/* Room Details Section */}
         <View style={styles.bodyContent}>
           {/* Description */}
-          <View style={styles.sectionCard}>
+          <Animated.View entering={FadeIn.delay(100)} style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>Giới thiệu không gian</Text>
             <Text style={styles.descriptionText}>{room.description}</Text>
-          </View>
+          </Animated.View>
 
           {/* Amenities Grid */}
-          <View style={styles.sectionCard}>
+          <Animated.View entering={FadeIn.delay(200)} style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>Trang thiết bị & Tiện nghi</Text>
             <View style={styles.amenitiesGrid}>
               {room.amenities.map(amenity => (
@@ -179,10 +181,10 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
                 </View>
               ))}
             </View>
-          </View>
+          </Animated.View>
 
           {/* Interactive Date & 2-Hour Time Slot Matrix */}
-          <View style={styles.sectionCard}>
+          <Animated.View entering={FadeIn.delay(300)} style={styles.sectionCard}>
             <TimeSlotGrid
               selectedDate={selectedDate}
               onSelectDate={date => {
@@ -196,10 +198,10 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
               getSlotOccupant={isSlotOccupied}
               getUserSlotBooking={getUserSlotBooking}
             />
-          </View>
+          </Animated.View>
 
           {/* Campus Room Booking Rules Callout */}
-          <View style={styles.rulesBox}>
+          <Animated.View entering={FadeIn.delay(400)} style={styles.rulesBox}>
             <ShieldCheck size={20} color={Colors.primary} />
             <View style={styles.rulesTextCol}>
               <Text style={styles.rulesTitle}>Quy định sử dụng phòng học</Text>
@@ -209,14 +211,14 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
                 • Hủy đặt chỗ trước tối thiểu 30 phút nếu không sử dụng.
               </Text>
             </View>
-          </View>
+          </Animated.View>
 
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
       {/* Floating Bottom Booking Action Bar */}
-      <View style={styles.bottomBar}>
+      <Animated.View entering={SlideInDown.delay(500)} style={styles.bottomBar}>
         <View style={styles.bottomInfoCol}>
           <Text style={styles.bottomDateText}>
             {formatVietnameseDate(selectedDate)}
@@ -240,7 +242,7 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
             {selectedSlotId ? 'Đặt phòng ngay' : 'Chọn ca học'}
           </Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Confirmation Modal */}
       {selectedSlot && (
@@ -262,7 +264,7 @@ export const RoomDetailScreen: React.FC<RoomDetailScreenProps> = ({
         visible={isQRModalOpen}
         onClose={() => {
           setIsQRModalOpen(false);
-          onBookingSuccessNavigate();
+          navigation.navigate('MainTabs', { screen: 'MyBookings' });
         }}
         booking={activeCreatedBooking}
         onCheckIn={checkInBooking}
